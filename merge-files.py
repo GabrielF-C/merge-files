@@ -8,6 +8,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--inputs", required=True, nargs="+", help="<Required> list of files to merge")
 ap.add_argument("-o", "--output", required=True, type=str, help="<Required> path to the output file")
 ap.add_argument("-b", "--backup", type=str, help="path to backup directory")
+ap.add_argument("-id", "--inputs-directory", type=str, help="if specified, all the inputs files are under this directory")
 ap.add_argument("-ie", "--input-extension", type=str, help="if specified, input files must end with this extension")
 ap.add_argument("-oe", "--output-extension", type=str, help="if specified, output path must end with this extension")
 args = ap.parse_args()
@@ -107,4 +108,5 @@ def process_input_file(input_file_path: str, input_extension: str, output_file: 
 # =============================================================
 
 if __name__ == '__main__':
-  main(args.inputs, args.input_extension, args.output, args.output_extension, args.backup or ".")
+  inputs = args.inputs if args.inputs_directory is None else [f"{args.inputs_directory}/{i}" for i in args.inputs]
+  main(inputs, args.input_extension, args.output, args.output_extension, args.backup or ".")
