@@ -37,7 +37,7 @@ def main(input_file_paths: list, input_extension: str, output_file_path: str, ou
     if os.path.isfile(output_file_path):
       os.rename(output_file_path, output_backup_path)
 
-    return open(output_file_path, "a+")
+    return open(output_file_path, "a+", encoding="utf-8")
 
 
   def restore_output_backup():
