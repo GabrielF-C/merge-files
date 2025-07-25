@@ -1,4 +1,5 @@
 import argparse
+import filecmp
 from io import TextIOWrapper
 import os
 
@@ -30,7 +31,11 @@ def main(input_file_paths: list, input_extension: str, output_file_path: str, ou
     raise e
   else:
     output_file.close()
-    postprocess_output_file(output_file_path)
+    if os.path.isfile(get_backup_path(output_file_path)) and filecmp.cmp(output_file_path, get_backup_path(output_file_path), shallow = False):
+      print("Resulting output is same as the old one")
+      restore_output_backup(output_file_path)
+    else:
+      postprocess_output_file(output_file_path)
 
 # -----------------------------------------------------------
 
