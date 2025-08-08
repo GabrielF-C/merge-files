@@ -2,6 +2,7 @@ import argparse
 import filecmp
 from io import TextIOWrapper
 import os
+import re
 
 
 ap = argparse.ArgumentParser()
@@ -11,11 +12,20 @@ ap.add_argument("-b", "--backup", type=str, help="path to backup directory")
 ap.add_argument("-id", "--inputs-directory", type=str, help="if specified, all the inputs files are under this directory")
 ap.add_argument("-ie", "--input-extension", type=str, help="if specified, input files must end with this extension")
 ap.add_argument("-oe", "--output-extension", type=str, help="if specified, output path must end with this extension")
+ap.add_argument("-r", "--regexes", nargs="+", help="list of regexes to execute in order, all matches will be deleted from the output")
 args = ap.parse_args()
 
 # -----------------------------------------------------------
 
-def main(input_file_paths: list, input_extension: str, output_file_path: str, output_extension: str, backup_dir_path: str):
+
+def main(
+  input_file_paths: list,
+  input_extension: str,
+  output_file_path: str,
+  output_extension: str,
+  backup_dir_path: str,
+  regexes: list,
+):
   def get_backup_path():
     return f"{backup_dir_path}/{output_file_path}.backup"
 
@@ -39,7 +49,6 @@ def main(input_file_paths: list, input_extension: str, output_file_path: str, ou
 
     return open(output_file_path, "a+", encoding="utf-8")
 
-
   def restore_output_backup():
     print("Restoring old output file and backups")
 
@@ -55,13 +64,12 @@ def main(input_file_paths: list, input_extension: str, output_file_path: str, ou
     if os.path.isfile(output_backup_backup_path):
       os.rename(output_backup_backup_path, output_backup_path)
 
-
   def postprocess_output_file():
     print("Cleaning up")
 
     output_backup_backup_path = get_backup_backup_path()
 
-    if (os.path.isfile(output_backup_backup_path)):
+    if os.path.isfile(output_backup_backup_path):
       os.remove(output_backup_backup_path)
 
   def process():
@@ -84,29 +92,57 @@ def main(input_file_paths: list, input_extension: str, output_file_path: str, ou
       raise e
     else:
       output_file.close()
+
+      if regexes:
+        # Reopen the output file in write (instead of append) and search&replace all regex matches
+        output_file = open(output_file_path, "r+", encoding="utf-8")
+        output_contents = output_file.read()
+        print(output_contents)
+        for regex in regexes:
+          output_contents = re.sub(regex, "", output_contents)
+        output_file.seek(0)
+        output_file.write(output_contents)
+        output_file.truncate()
+        output_file.close()
+
       output_backup_path = get_backup_path()
-      if os.path.isfile(output_backup_path) and filecmp.cmp(output_file_path, output_backup_path, shallow = False):
+      if os.path.isfile(output_backup_path) and filecmp.cmp(output_file_path, output_backup_path, shallow=False):
         print("Resulting output is same as the old one")
         restore_output_backup()
       else:
         postprocess_output_file()
+
   # -----------------------------------------------------------
   process()
   # -----------------------------------------------------------
 
-  
+
 def process_input_file(input_file_path: str, input_extension: str, output_file: TextIOWrapper):
   if input_extension and not input_file_path.lower().endswith(input_extension):
     raise ValueError(f"Input '{input_file_path}' must end with the following extension : {input_extension}")
-  
+
   if not os.path.isfile(input_file_path):
     raise FileNotFoundError(f"Input '{input_file_path}' does not exist")
   input_file = open(input_file_path)
   output_file.write(input_file.read() + "\n")
   input_file.close()
 
+
+def regexes_from_strings(strings: list) -> list:
+  if strings is None:
+    return []
+  return [re.compile(regex) for regex in strings]
+
+
 # =============================================================
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   inputs = args.inputs if args.inputs_directory is None else [f"{args.inputs_directory}/{i}" for i in args.inputs]
-  main(inputs, args.input_extension, args.output, args.output_extension, args.backup or ".")
+  main(
+    inputs,
+    args.input_extension,
+    args.output,
+    args.output_extension,
+    args.backup or ".",
+    regexes_from_strings(args.regexes),
+  )
