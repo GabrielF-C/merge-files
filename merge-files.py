@@ -130,7 +130,7 @@ def process_input_file(input_file_path: str, input_extension: str, output_file: 
 def regexes_from_strings(strings: list) -> list:
   if strings is None:
     return []
-  return [re.compile(regex) for regex in strings]
+  return [re.compile(regex, re.MULTILINE) for regex in strings]
 
 
 # =============================================================
