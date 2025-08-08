@@ -97,7 +97,6 @@ def main(
         # Reopen the output file in write (instead of append) and search&replace all regex matches
         output_file = open(output_file_path, "r+", encoding="utf-8")
         output_contents = output_file.read()
-        print(output_contents)
         for regex in regexes:
           output_contents = re.sub(regex, "", output_contents)
         output_file.seek(0)
